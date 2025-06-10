@@ -4,11 +4,12 @@
 [![Downloads](https://img.shields.io/badge/downloads-0-green.svg)](https://marketplace.visualstudio.com/items?itemName=your-publisher.vscode-dependency-graph)
 [![Rating](https://img.shields.io/badge/rating-★★★★★-yellow.svg)](https://marketplace.visualstudio.com/items?itemName=your-publisher.vscode-dependency-graph)
 
-## 📊 Visualize Your Dependencies Like Never Before
+## 📊 Visualize suas dependências como nunca antes
+
 
 **Dependency Graph** é uma extensão poderosa para Visual Studio Code que transforma a complexidade das dependências do seu código em visualizações interativas e intuitivas. Ideal para projetos que utilizam **NestJS**, **Inversify**, **Awilix** ou qualquer arquitetura baseada em injeção de dependências.
 
-[Dependency Graph Demo](./assets/demo.gif)
+![Dependency Graph Demo](./assets/demo.gif)
 
 ## ✨ Principais Recursos
 
@@ -173,7 +174,7 @@ Este projeto está licenciado sob a MIT License - veja o arquivo [LICENSE](LICEN
 
 **João Luiz Pereira Ferreira**
 - Email: joaoferreira981011@gmail.com
-- GitHub: [@your-github-username](https://github.com/your-github-username)
+- GitHub: [@11jl98](https://github.com/11jl98)
 
 ## 🙏 Agradecimentos
 
