@@ -6,7 +6,9 @@
     "name": "João Luiz Pereira Ferreira",
     "email": "joaoferreira981011@gmail.com"
   },
+  "icon": "assets/logo.jpg",
   "version": "0.0.1",
+  "publisher": "joaoferreira981011",
   "main": "./dist/extension.js",
   "categories": [
     "Other"
