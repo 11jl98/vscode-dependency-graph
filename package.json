@@ -1,6 +1,6 @@
 {
   "name": "vscode-dependency-graph",
-  "displayName": "Dependency Graph",
+  "displayName": "Dependency Graph Visualizer",
   "description": "Visualize OOP service dependencies (NestJS, Inversify, Awilix) as a graph.",
   "author": {
     "name": "João Luiz Pereira Ferreira",
@@ -10,6 +10,10 @@
   "version": "0.0.1",
   "publisher": "joaoferreira981011",
   "main": "./dist/extension.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/11jl98/vscode-dependency-graph"
+  },
   "categories": [
     "Other"
   ],
