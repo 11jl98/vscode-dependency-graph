@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Dependency Graph</title>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+      
+      html,
+      body,
+      #cy {
+        height: 100%;
+        margin: 0;
+        background: linear-gradient(135deg, #0d1117 0%, #161b22 50%, #21262d 100%);
+        color: #f0f6fc;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        overflow: hidden;
+      }
+      
+      #legend {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        background: rgba(13, 17, 23, 0.95);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(56, 139, 253, 0.15);
+        padding: 16px;
+        border-radius: 12px;
+        font-size: 13px;
+        z-index: 9999;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        min-width: 220px;
+      }
+      
+      #legend strong {
+        color: #58a6ff;
+        font-weight: 600;
+        display: block;
+        margin-bottom: 8px;
+      }
+      
+      #legend hr {
+        border: none;
+        height: 1px;
+        background: linear-gradient(90deg, rgba(56, 139, 253, 0.3), transparent);
+        margin: 12px 0;
+      }
+      
+      .tooltip {
+        position: absolute;
+        background: rgba(13, 17, 23, 0.95);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(56, 139, 253, 0.2);
+        color: #fff;
+        padding: 12px;
+        border-radius: 8px;
+        font-size: 13px;
+        pointer-events: none;
+        display: none;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+        z-index: 10001;
+      }
+      
+      #loading {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: #58a6ff;
+        font-size: 18px;
+        font-weight: 500;
+        z-index: 10000;
+        text-align: center;
+      }
+      
+      #loading::after {
+        content: '';
+        display: block;
+        width: 40px;
+        height: 40px;
+        margin: 16px auto 0;
+        border: 3px solid rgba(88, 166, 255, 0.2);
+        border-top: 3px solid #58a6ff;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="legend">
+      <strong>Legenda:</strong><br />
+      🔵 Baixo acoplamento<br />
+      🟠 Médio acoplamento<br />
+      🔴 Alto acoplamento<br />
+      <hr style="margin: 8px 0" />
+      <strong>Clique em um nó:</strong><br />
+      🟢 Dependências (o que ele usa)<br />
+      🔴 Impactados (serão afetados se removido)
+    </div>
+    <div id="cy"></div>
+    <div id="loading">📊 Carregando grafo de dependências...</div>
+    <div class="tooltip" id="tooltip"></div>
+    <script src="https://unpkg.com/cytoscape/dist/cytoscape.min.js"></script>
+    <script>
+      const vscode = acquireVsCodeApi();
+      let cytoscapeLoaded = false;
+
+      function signalReady() {
+        console.log("Webview enviando sinal de pronto...");
+        vscode.postMessage({ command: "webviewReady" });
+      }
+
+      function checkCytoscapeLoaded() {
+        if (typeof cytoscape !== "undefined") {
+          cytoscapeLoaded = true;
+          console.log("Cytoscape carregado com sucesso");
+          signalReady();
+        } else {
+          console.log("Aguardando Cytoscape carregar...");
+          setTimeout(checkCytoscapeLoaded, 100);
+        }
+      }
+
+      window.addEventListener("load", () => {
+        setTimeout(checkCytoscapeLoaded, 100);
+      });
+
+      if (document.readyState === "complete") {
+        setTimeout(checkCytoscapeLoaded, 100);
+      }
+
+      window.addEventListener("message", (event) => {
+        const elements = event.data.elements;
+        if (!elements) return;
+
+        console.log("Recebendo dados do grafo:", elements.length, "elementos");
+
+        document.getElementById("loading").style.display = "none";
+
+        const cy = cytoscape({
+          container: document.getElementById("cy"),
+          elements,
+          style: [
+            {
+              selector: "node",
+              style: {
+                "background-color": (ele) => {
+                  const score = (ele.data("in") || 0) + (ele.data("out") || 0);
+                  if (score >= 6) return "#ff6b6b";
+                  if (score >= 3) return "#ffa726";
+                  return "#58a6ff";
+                },
+                "background-gradient-stop-colors": (ele) => {
+                  const score = (ele.data("in") || 0) + (ele.data("out") || 0);
+                  if (score >= 6) return "#ff6b6b #ff5252";
+                  if (score >= 3) return "#ffa726 #ff9800";
+                  return "#58a6ff #2196f3";
+                },
+                "background-gradient-direction": "to-bottom",
+                "width": 140,
+                "height": 140,
+                "shape": "ellipse",
+                "border-width": 2,
+                "border-color": "rgba(255, 255, 255, 0.1)",
+                "border-opacity": 0.5,
+                "label": (ele) => {
+                  const name = ele.data("id");
+                  // Se o nome for muito longo (mais de 25 caracteres), truncar com elipses
+                  if (name.length > 25) {
+                    return name.substring(0, 22) + "...";
+                  }
+                  return name;
+                },
+                "color": "#ffffff",
+                "text-valign": "center",
+                "text-halign": "center",
+                "font-size": "16px",
+                "font-family": "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+                "font-weight": "600",
+                "text-outline-width": 2,
+                "text-outline-color": "rgba(0, 0, 0, 0.8)",
+                "text-outline-opacity": 1,
+                "text-wrap": "wrap",
+                "text-max-width": "120px",
+                "text-overflow-wrap": "anywhere",
+                "text-justification": "center",
+                "overlay-padding": 8,
+                "overlay-color": "rgba(88, 166, 255, 0.1)",
+                "overlay-opacity": 0,
+                "transition-property": "overlay-opacity, border-color, background-color",
+                "transition-duration": "0.2s",
+                "box-shadow-blur": 8,
+                "box-shadow-color": "rgba(0, 0, 0, 0.3)",
+                "box-shadow-opacity": 0.5,
+                "box-shadow-offset-x": 0,
+                "box-shadow-offset-y": 2
+              },
+            },
+            {
+              selector: "edge",
+              style: {
+                width: 2,
+                "line-color": "rgba(136, 136, 136, 0.6)",
+                "target-arrow-color": "rgba(136, 136, 136, 0.6)",
+                "target-arrow-shape": "triangle",
+                "curve-style": "bezier",
+                "opacity": 0.6,
+                "transition-property": "line-color, target-arrow-color, opacity, width",
+                "transition-duration": "0.2s"
+              },
+            },
+            {
+              selector: "node.highlighted",
+              style: {
+                "border-width": 4,
+                "border-color": "#ffffff",
+                "box-shadow-blur": 16,
+                "box-shadow-color": "rgba(255, 255, 255, 0.4)",
+                "box-shadow-opacity": 1,
+                "overlay-opacity": 0.2,
+              },
+            },
+            {
+              selector: "edge.highlighted",
+              style: {
+                "line-color": "#ffffff",
+                "target-arrow-color": "#ffffff",
+                width: 3,
+                "opacity": 1,
+              },
+            },
+            {
+              selector: "node.dependency",
+              style: {
+                "border-width": 4,
+                "border-color": "#00ff88",
+                "box-shadow-blur": 16,
+                "box-shadow-color": "rgba(0, 255, 136, 0.5)",
+                "box-shadow-opacity": 1,
+              },
+            },
+            {
+              selector: "node.dependent",
+              style: {
+                "border-width": 4,
+                "border-color": "#ff4757",
+                "box-shadow-blur": 16,
+                "box-shadow-color": "rgba(255, 71, 87, 0.5)",
+                "box-shadow-opacity": 1,
+              },
+            },
+            {
+              selector: "edge.dependency-edge",
+              style: {
+                "line-color": "#00ff88",
+                "target-arrow-color": "#00ff88",
+                width: 3,
+                "opacity": 1,
+              },
+            },
+            {
+              selector: "edge.dependent-edge",
+              style: {
+                "line-color": "#ff4757",
+                "target-arrow-color": "#ff4757",
+                width: 3,
+                "opacity": 1,
+              },
+            },
+          ],
+          layout: {
+            name: "cose",
+            idealEdgeLength: 150,
+            nodeOverlap: 10,
+            refresh: 20,
+            fit: true,
+            padding: 50,
+            randomize: false,
+            componentSpacing: 100,
+            nodeRepulsion: 400000,
+            edgeElasticity: 100,
+            nestingFactor: 5,
+            gravity: 80,
+            numIter: 1000,
+            initialTemp: 200,
+            coolingFactor: 0.95,
+            minTemp: 1.0,
+            animate: true,
+            animationDuration: 1500
+          },
+        });
+
+        const tooltip = document.getElementById("tooltip");
+
+        cy.on("tap", "node", (evt) => {
+          const node = evt.target;
+          cy.elements().removeClass(
+            "highlighted dependency dependent dependency-edge dependent-edge"
+          );
+
+          node.addClass("highlighted");
+
+          const dependencies = cy
+            .edges()
+            .filter((edge) => edge.data("source") === node.id())
+            .map((edge) => edge.target());
+
+          const dependents = cy
+            .edges()
+            .filter((edge) => edge.data("target") === node.id())
+            .map((edge) => edge.source());
+
+          dependencies.forEach((dep) => {
+            dep.addClass("highlighted");
+            dep.addClass("dependency");
+            dep.connectedEdges().forEach((e) => {
+              if (
+                e.source().id() === node.id() &&
+                e.target().id() === dep.id()
+              ) {
+                e.addClass("highlighted");
+                e.addClass("dependency-edge");
+              }
+            });
+          });
+
+          dependents.forEach((dep) => {
+            dep.addClass("highlighted");
+            dep.addClass("dependent");
+            dep.connectedEdges().forEach((e) => {
+              if (
+                e.source().id() === dep.id() &&
+                e.target().id() === node.id()
+              ) {
+                e.addClass("highlighted");
+                e.addClass("dependent-edge");
+              }
+            });
+          });
+        });
+
+        cy.on("mouseover", "node", (evt) => {
+          const node = evt.target;
+          
+          if (!node.hasClass("highlighted") && !node.hasClass("dependency") && !node.hasClass("dependent")) {
+            node.style({
+              "overlay-opacity": 0.1,
+              "border-width": 3,
+              "border-color": "rgba(255, 255, 255, 0.3)"
+            });
+          }
+          
+          const data = node.data();
+          tooltip.innerHTML = `🔗 <strong>${data.id}</strong><br>In: ${data.in}<br>Out: ${data.out}<br>💥 Impactará: ${data.in} módulo(s)`;
+          tooltip.style.display = "block";
+        });
+
+        cy.on("mouseout", "node", (evt) => {
+          const node = evt.target;
+          
+          if (!node.hasClass("highlighted") && !node.hasClass("dependency") && !node.hasClass("dependent")) {
+            node.removeStyle("overlay-opacity border-width border-color");
+          }
+          
+          tooltip.style.display = "none";
+        });
+
+        cy.on("mousemove", (evt) => {
+          tooltip.style.left = evt.originalEvent.pageX + 10 + "px";
+          tooltip.style.top = evt.originalEvent.pageY + 10 + "px";
+        });
+
+        cy.on("tap", (evt) => {
+          if (evt.target === cy) {
+            cy.elements().removeClass(
+              "highlighted dependency dependent dependency-edge dependent-edge"
+            );
+          }
+        });
+        
+        cy.userZoomingEnabled(true);
+        cy.userPanningEnabled(true);
+        cy.boxSelectionEnabled(false);
+        
+        document.addEventListener("keydown", (evt) => {
+          if (evt.key === "Escape") {
+            cy.elements().removeClass(
+              "highlighted dependency dependent dependency-edge dependent-edge"
+            );
+          }
+          if (evt.key === "+" || evt.key === "=") {
+            cy.zoom(cy.zoom() * 1.2);
+            cy.center();
+          }
+          if (evt.key === "-") {
+            cy.zoom(cy.zoom() * 0.8);
+            cy.center();
+          }
+          if (evt.key === "r" || evt.key === "R") {
+            cy.fit();
+            cy.zoom(1);
+          }
+        });
+      });
+    </script>
+  </body>
+</html>
