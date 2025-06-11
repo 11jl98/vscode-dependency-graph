@@ -7,7 +7,7 @@
     "email": "joaoferreira981011@gmail.com"
   },
   "icon": "assets/logo.jpg",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "publisher": "joaoferreira981011",
   "main": "./dist/extension.js",
   "repository": {
