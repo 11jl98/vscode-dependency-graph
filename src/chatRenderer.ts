@@ -68,8 +68,8 @@ export function registerChatRenderer(context: vscode.ExtensionContext) {
 							localResourceRoots: [vscode.Uri.joinPath(context.extensionUri, 'media'), cytoscapeDist]
 						};
 
-				const nonce = getNonce();
-				const elementsJson = escapeForScriptBlock(JSON.stringify(data?.elements ?? []));
+			const nonce = getNonce();
+		const elementsJson = JSON.stringify(data?.elements ?? []);
 
 			  const cytoscapeUri = webview.asWebviewUri(vscode.Uri.joinPath(cytoscapeDist, 'cytoscape.min.js'));
 			  webview.html = `<!DOCTYPE html>
@@ -78,55 +78,75 @@ export function registerChatRenderer(context: vscode.ExtensionContext) {
 							<meta charset="UTF-8">
 							<meta name="viewport" content="width=device-width, initial-scale=1.0">
 							<title>Dependency Graph</title>
-				  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src ${webview.cspSource} 'nonce-${nonce}'; img-src data:; connect-src 'none';" />
+								<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src ${webview.cspSource} 'nonce-${nonce}'; img-src data:;" />
 							<style>
-								html, body, #cy { height: 360px; margin: 0; }
-								body { background: transparent; }
-								#legend { font-size: 12px; color: var(--vscode-foreground); margin-bottom: 8px; }
+									html, body { margin: 0; padding: 0; }
+									body { background: var(--vscode-editor-background); color: var(--vscode-foreground); }
+									#legend { font-size: 12px; margin-bottom: 8px; }
+									#container { width: 100%; }
+									#cy { width: 100%; height: 460px; border-radius: 6px; }
+									#msg { font-size: 12px; opacity: 0.8; }
 							</style>
 						</head>
 						<body>
-							<div id="legend">
-								🔵 baixo | 🟠 médio | 🔴 alto acoplamento — clique em um nó p/ ver dependências/impactos
-							</div>
-							<div id="cy"></div>
-				  <script nonce="${nonce}" src="${cytoscapeUri}"></script>
-							<script nonce="${nonce}">
-								const elements = ${elementsJson};
-								const cy = cytoscape({
-									container: document.getElementById('cy'),
-									elements,
-									style: [
-										{ selector: 'node', style: {
-											'background-color': ele => {
-												const score = (ele.data('in')||0) + (ele.data('out')||0);
-												if (score >= 6) return '#ff6b6b';
-												if (score >= 3) return '#ffa726';
-												return '#58a6ff';
-											},
-											'label': ele => ele.data('id'),
-											'color': '#fff',
-											'text-valign': 'center',
-											'text-halign': 'center',
-											'font-size': 12,
-											'width': 32, 'height': 32
-										}},
-										{ selector: 'edge', style: {
-											'width': 1.5,
-											'line-color': 'rgba(136,136,136,0.6)',
-											'target-arrow-color': 'rgba(136,136,136,0.6)',
-											'target-arrow-shape': 'triangle',
-											'curve-style': 'bezier'
-										}}
-									],
-									layout: { name: 'cose', idealEdgeLength: 80, padding: 10, animate: true, animationDuration: 600 }
-								});
+								<div id="legend">🔵 baixo | 🟠 médio | 🔴 alto — clique em um nó para ver dependências/impactos</div>
+								<div id="container">
+									<div id="cy"></div>
+									<div id="msg"></div>
+								</div>
+			  <script nonce="${nonce}" src="${cytoscapeUri}"></script>
+			  <script id="dg-elements" type="application/json">${elementsJson}</script>
+			  <script nonce="${nonce}">
+									(function(){
+										const msg = document.getElementById('msg');
+										try {
+				  const jsonTag = document.getElementById('dg-elements');
+				  const elements = JSON.parse(jsonTag.textContent || '[]');
+											if (!Array.isArray(elements) || elements.length === 0) {
+												msg.textContent = 'Nenhum nó/aresta para exibir. Verifique se o workspace tem tsconfig.json e classes detectáveis.';
+												return;
+											}
 
-								cy.on('tap', 'node', evt => {
-									const node = evt.target;
-									cy.elements().removeClass('highlighted');
-									node.addClass('highlighted');
-								});
+											if (typeof cytoscape === 'undefined') {
+												msg.textContent = 'Falha ao carregar Cytoscape.';
+												return;
+											}
+
+											const cy = cytoscape({
+												container: document.getElementById('cy'),
+												elements,
+												style: [
+													{ selector: 'node', style: {
+														'background-color': ele => {
+															const score = (ele.data('in')||0) + (ele.data('out')||0);
+															if (score >= 6) return '#ff6b6b';
+															if (score >= 3) return '#ffa726';
+															return '#58a6ff';
+														},
+														'label': ele => ele.data('id'),
+														'color': '#fff',
+														'text-valign': 'center',
+														'text-halign': 'center',
+														'font-size': 12,
+														'width': 32, 'height': 32
+													}},
+													{ selector: 'edge', style: {
+														'width': 1.5,
+														'line-color': 'rgba(136,136,136,0.6)',
+														'target-arrow-color': 'rgba(136,136,136,0.6)',
+														'target-arrow-shape': 'triangle',
+														'curve-style': 'bezier'
+													}}
+												],
+												layout: { name: 'cose', idealEdgeLength: 80, padding: 10, animate: true, animationDuration: 600 }
+											});
+																cy.one('layoutstop', () => {
+																	msg.textContent = 'Nós: ' + cy.nodes().length + ' | Arestas: ' + cy.edges().length;
+																});
+										} catch (e) {
+											msg.textContent = 'Erro ao renderizar grafo: ' + (e && e.message ? e.message : e);
+										}
+									})();
 							</script>
 						</body>
 					</html>`;
