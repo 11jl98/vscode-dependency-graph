@@ -62,6 +62,42 @@
 - **Click no nó**: Analisar impacto
 - **Click no fundo**: Limpar análise
 
+## 🤖 Uso com IA (Copilot Chat)
+
+![Dependency IA ](./assets/ia.png)
+
+
+Agora você também pode gerar e visualizar o grafo direto no Copilot Chat usando a ferramenta de IA integrada da extensão.
+
+### Pré‑requisitos (IA)
+
+- VS Code 1.103.0 ou superior (preferencialmente Insiders) com Chat habilitado
+- GitHub Copilot Chat instalado e autenticado
+
+### Como usar no Copilot Chat
+
+1. Abra o painel do Copilot Chat
+2. No chat, peça para gerar o grafo usando a ferramenta por nome. Exemplos de prompts:
+  - “Use a ferramenta dependency-graph-render para gerar o grafo de dependências do workspace atual.”
+  - “Gere e mostre o grafo de dependências (dependency-graph-render).”
+  - “dependency-graph-render”
+3. Opcionalmente, informe a raiz do workspace (se não quiser usar a primeira pasta aberta):
+
+  Exemplo de prompt com parâmetro:
+  - “Use a ferramenta dependency-graph-render com { "workspaceRoot": "C:\\caminho\\do\\projeto" }”
+
+Se tudo estiver correto, o Copilot retornará uma mensagem “Dependency graph generated” seguida de um bloco visual interativo do grafo dentro do próprio chat. Você poderá:
+
+- Clicar nos nós para ver dependências e impactados
+- Usar “+”/“-” para zoom, “R” para reset
+- Pressionar “Esc” para limpar destaques
+
+Observações:
+
+- A ferramenta lê os arquivos do workspace para calcular o grafo (não requer configuração adicional além do seu projeto TypeScript com tsconfig.json).
+- Caso sua versão do VS Code não suporte renderização de “Chat Output” ainda, o chat pode não exibir o grafo visual. Use o comando “Show Dependency Graph” pelo Command Palette como alternativa.
+- Se você vir mensagens como “vscode.lm API indisponível”, atualize o VS Code e garanta que o Copilot Chat está ativo.
+
 ## 🏗️ Frameworks Suportados
 
 ### NestJS

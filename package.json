@@ -7,7 +7,7 @@
     "email": "joaoferreira981011@gmail.com"
   },
   "icon": "assets/logo.jpg",
-  "version": "0.0.2",
+  "version": "1.0.0",
   "publisher": "joaoferreira981011",
   "main": "./dist/extension.js",
   "enabledApiProposals": [
@@ -21,14 +21,14 @@
     "Other"
   ],
   "engines": {
-		"vscode": "^1.103.0"
+    "vscode": "^1.103.0"
   },
   "contributes": {
     "languageModelTools": [
       {
-  "name": "dependency-graph-render",
+        "name": "dependency-graph-render",
         "displayName": "Dependency Graph Renderer",
-  "toolReferenceName": "dependency-graph-render",
+        "toolReferenceName": "dependency-graph-render",
         "canBeReferencedInPrompt": true,
         "modelDescription": "Gera e renderiza o grafo de dependências do projeto atual.",
         "userDescription": "Gere e visualize o grafo de dependências do projeto atual no chat.",
